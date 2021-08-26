@@ -1,7 +1,7 @@
-from aiohttp_apispec import request_schema, response_schema
+from aiohttp_apispec import request_schema, response_schema, querystring_schema
 
 from app.quiz.schemes import (
-    ThemeSchema, ThemeRequestSchema, QuestionSchema, QuestionIdScheme,
+    ThemeSchema, ThemeRequestSchema, QuestionSchema, QuestionResponseScheme, QuestionIdScheme, ListQuestionSchema,
 )
 from app.web.app import View
 from app.web.utils import json_response
@@ -62,9 +62,16 @@ class QuestionAddView(View):
             theme_id=data['theme_id'],
             answers=data['answers']
         )
-        return json_response(data=QuestionIdScheme().dump(question))
+        return json_response(data=QuestionResponseScheme().dump(question))
 
 
 class QuestionListView(View):
+    @querystring_schema(QuestionIdScheme)
+    @response_schema(ListQuestionSchema)
     async def get(self):
-        raise NotImplementedError
+        theme_id = None
+        if self.request.query:
+            theme_id = self.request.query['theme_id']
+        questions = await self.store.quizzes.list_questions(theme_id=theme_id)
+        questions_raw = [QuestionResponseScheme().dump(question) for question in questions]
+        return json_response(data={'questions': questions_raw})

@@ -38,4 +38,9 @@ class QuizAccessor(BaseAccessor):
         return question
 
     async def list_questions(self, theme_id: Optional[int] = None) -> list[Question]:
-        raise NotImplementedError
+        result = []
+        for question in self.app.database.questions:
+            if theme_id and question.theme_id != theme_id:
+                continue
+            result.append(question)
+        return result
