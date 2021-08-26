@@ -1,8 +1,9 @@
 import json
 import typing
 
-
-from aiohttp.web_exceptions import HTTPUnprocessableEntity, HTTPForbidden, HTTPMethodNotAllowed, HTTPConflict, HTTPNotFound, HTTPBadRequest
+import aiohttp_session
+from aiohttp.web_exceptions import HTTPUnprocessableEntity, HTTPForbidden, HTTPMethodNotAllowed, HTTPConflict, \
+    HTTPNotFound, HTTPBadRequest, HTTPUnauthorized
 from aiohttp.web_middlewares import middleware
 from aiohttp_apispec import validation_middleware
 
@@ -41,6 +42,12 @@ async def error_handling_middleware(request: "Request", handler):
             status=HTTP_ERROR_CODES[400],
         )
 
+    except HTTPUnauthorized as e:
+        return error_json_response(
+            http_status=401,
+            status=HTTP_ERROR_CODES[401],
+        )
+
     except HTTPForbidden as e:
         return error_json_response(
             http_status=403,
@@ -75,3 +82,4 @@ async def error_handling_middleware(request: "Request", handler):
 def setup_middlewares(app: "Application"):
     app.middlewares.append(error_handling_middleware)
     app.middlewares.append(validation_middleware)
+    app.middlewares.append(aiohttp_session.session_middleware(aiohttp_session.SimpleCookieStorage()))

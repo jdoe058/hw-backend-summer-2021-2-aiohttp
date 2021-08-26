@@ -1,11 +1,12 @@
 from aiohttp_apispec import request_schema, response_schema, querystring_schema
+from aiohttp_session import get_session
 
 from app.quiz.schemes import (
     ThemeSchema, ThemeRequestSchema, QuestionSchema, QuestionResponseScheme, QuestionIdScheme, ListQuestionSchema,
 )
 from app.web.app import View
 from app.web.utils import json_response
-from aiohttp.web_exceptions import HTTPConflict, HTTPNotFound, HTTPBadRequest
+from aiohttp.web_exceptions import HTTPConflict, HTTPNotFound, HTTPBadRequest, HTTPUnauthorized
 
 
 # TODO: добавить проверку авторизации для этого View
@@ -14,6 +15,10 @@ class ThemeAddView(View):
     @request_schema(ThemeRequestSchema)
     @response_schema(ThemeSchema)
     async def post(self):
+        session = await get_session(self.request)
+        if not session:
+            raise HTTPUnauthorized
+
         data = self.request['data']
         theme = await self.store.quizzes.get_theme_by_title(data['title'])
 
@@ -31,6 +36,10 @@ class ThemeAddView(View):
 
 class ThemeListView(View):
     async def get(self):
+        session = await get_session(self.request)
+        if not session:
+            raise HTTPUnauthorized
+
         themes = await self.store.quizzes.list_themes()
         raw_themes = [ThemeSchema().dump(theme) for theme in themes]
         return json_response(data={'themes': raw_themes})
@@ -39,6 +48,10 @@ class ThemeListView(View):
 class QuestionAddView(View):
     @request_schema(QuestionSchema)
     async def post(self):
+        session = await get_session(self.request)
+        if not session:
+            raise HTTPUnauthorized
+
         data = self.request['data']
 
         if len(data['answers']) == 1:
@@ -66,9 +79,14 @@ class QuestionAddView(View):
 
 
 class QuestionListView(View):
+
     @querystring_schema(QuestionIdScheme)
     @response_schema(ListQuestionSchema)
     async def get(self):
+        session = await get_session(self.request)
+        if not session:
+            raise HTTPUnauthorized
+
         theme_id = None
         if self.request.query:
             theme_id = self.request.query['theme_id']

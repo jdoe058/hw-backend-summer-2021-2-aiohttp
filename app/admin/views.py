@@ -2,6 +2,8 @@ from hashlib import sha256
 
 from aiohttp.web_exceptions import HTTPForbidden
 from aiohttp_apispec import request_schema, response_schema
+from aiohttp_session import new_session
+from aiohttp_session.cookie_storage import EncryptedCookieStorage
 
 from app.admin.schemes import AdminSchema, AdminResponseSchema, UserSchema
 from app.web.app import View
@@ -17,6 +19,8 @@ class AdminLoginView(View):
 
         if admin:
             if sha256(str(data['password']).encode()).hexdigest() == admin.password:
+                session = await new_session(request=self.request)
+                session['sessionid'] = 1
                 return json_response(data=UserSchema().dump(admin))
         raise HTTPForbidden
 
