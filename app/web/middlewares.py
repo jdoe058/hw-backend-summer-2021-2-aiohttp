@@ -2,7 +2,7 @@ import json
 import typing
 
 
-from aiohttp.web_exceptions import HTTPUnprocessableEntity, HTTPForbidden, HTTPMethodNotAllowed, HTTPConflict
+from aiohttp.web_exceptions import HTTPUnprocessableEntity, HTTPForbidden, HTTPMethodNotAllowed, HTTPConflict, HTTPNotFound, HTTPBadRequest
 from aiohttp.web_middlewares import middleware
 from aiohttp_apispec import validation_middleware
 
@@ -34,9 +34,23 @@ async def error_handling_middleware(request: "Request", handler):
             message=e.reason,
             data=json.loads(e.text),
         )
+
+    except HTTPBadRequest as e:
+        return error_json_response(
+            http_status=400,
+            status=HTTP_ERROR_CODES[400],
+        )
+
     except HTTPForbidden as e:
         return error_json_response(
             http_status=403,
+            status=HTTP_ERROR_CODES[403],
+            message=e.reason,
+        )
+
+    except HTTPNotFound as e:
+        return error_json_response(
+            http_status=404,
             status=HTTP_ERROR_CODES[403],
             message=e.reason,
         )
@@ -52,7 +66,6 @@ async def error_handling_middleware(request: "Request", handler):
         return error_json_response(
             http_status=409,
             status=HTTP_ERROR_CODES[409],
-            #message=e.reason,
         )
 
     # TODO: обработать все исключения-наследники HTTPException и отдельно Exception, как server error

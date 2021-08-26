@@ -1,11 +1,11 @@
 from aiohttp_apispec import request_schema, response_schema
 
 from app.quiz.schemes import (
-    ThemeSchema, ThemeRequestSchema,
+    ThemeSchema, ThemeRequestSchema, QuestionSchema, QuestionIdScheme,
 )
 from app.web.app import View
 from app.web.utils import json_response
-from aiohttp.web_exceptions import HTTPConflict
+from aiohttp.web_exceptions import HTTPConflict, HTTPNotFound, HTTPBadRequest
 
 
 # TODO: добавить проверку авторизации для этого View
@@ -37,8 +37,32 @@ class ThemeListView(View):
 
 
 class QuestionAddView(View):
+    @request_schema(QuestionSchema)
     async def post(self):
-        raise NotImplementedError
+        data = self.request['data']
+
+        if len(data['answers']) == 1:
+            raise HTTPBadRequest
+
+        count = 0
+        for answer in data['answers']:
+            if answer['is_correct']:
+                count += 1
+
+        if count != 1:
+            raise HTTPBadRequest
+
+        theme = await self.store.quizzes.get_theme_by_id(data['theme_id'])
+
+        if not theme:
+            raise HTTPNotFound
+
+        question = await self.store.quizzes.create_question(
+            title=data['title'],
+            theme_id=data['theme_id'],
+            answers=data['answers']
+        )
+        return json_response(data=QuestionIdScheme().dump(question))
 
 
 class QuestionListView(View):

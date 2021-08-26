@@ -1,3 +1,4 @@
+from array import array
 from typing import Optional
 
 from app.base.base_accessor import BaseAccessor
@@ -31,7 +32,10 @@ class QuizAccessor(BaseAccessor):
     async def create_question(
         self, title: str, theme_id: int, answers: list[Answer]
     ) -> Question:
-        raise NotImplementedError
+        question = Question(id=self.app.database.next_question_id, title=str(title), theme_id=int(theme_id),
+                            answers=list(answers))
+        self.app.database.questions.append(question)
+        return question
 
     async def list_questions(self, theme_id: Optional[int] = None) -> list[Question]:
         raise NotImplementedError
