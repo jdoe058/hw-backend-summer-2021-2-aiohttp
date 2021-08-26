@@ -1,9 +1,10 @@
+from hashlib import sha256
+
 from aiohttp.web_exceptions import HTTPForbidden
 from aiohttp_apispec import request_schema, response_schema
 
-from app.admin.schemes import AdminSchema, AdminResponseSchema
+from app.admin.schemes import AdminSchema, AdminResponseSchema, UserSchema
 from app.web.app import View
-from app.web.schemes import OkResponseSchema
 from app.web.utils import json_response
 
 
@@ -12,9 +13,12 @@ class AdminLoginView(View):
     @response_schema(AdminResponseSchema)
     async def post(self):
         data = self.request['data']
-        if data['email'] != 'admin@admin.com' or data['password'] != 'admin':
-            raise HTTPForbidden
-        return json_response(data={'id': 1, 'email': 'admin@admin.com'})
+        admin = await self.store.admins.get_by_email(data['email'])
+
+        if admin:
+            if sha256(str(data['password']).encode()).hexdigest() == admin.password:
+                return json_response(data=UserSchema().dump(admin))
+        raise HTTPForbidden
 
 
 class AdminCurrentView(View):
