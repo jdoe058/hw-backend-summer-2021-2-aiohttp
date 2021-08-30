@@ -11,5 +11,7 @@ class BotManager:
         self.app = app
 
     async def handle_updates(self, updates: list[Update]):
-        pass
-        #raise NotImplementedError
+        for update in updates:
+            if update.type == 'message_new':
+                print(update)
+                await self.app.store.vk.send_message('new message')

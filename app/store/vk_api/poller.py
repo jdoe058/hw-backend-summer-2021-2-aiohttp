@@ -1,4 +1,4 @@
-from asyncio import Task
+from asyncio import Task, create_task, get_event_loop, wait
 from typing import Optional
 
 from app.store import Store
@@ -12,11 +12,15 @@ class Poller:
 
     async def start(self):
         # TODO: добавить asyncio Task на запуск poll
-        raise NotImplementedError
+        self.is_running = True
+        self.poll_task = Task(self.poll())
 
     async def stop(self):
         # TODO: gracefully завершить Poller
-        raise NotImplementedError
+        self.is_running = False
+        self.poll_task.cancel()
 
     async def poll(self):
-        raise NotImplementedError
+        while self.is_running:
+            await self.store.vk.poll()
+
