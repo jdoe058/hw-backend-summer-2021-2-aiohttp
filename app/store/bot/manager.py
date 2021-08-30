@@ -11,4 +11,5 @@ class BotManager:
         self.app = app
 
     async def handle_updates(self, updates: list[Update]):
-        raise NotImplementedError
+        pass
+        #raise NotImplementedError

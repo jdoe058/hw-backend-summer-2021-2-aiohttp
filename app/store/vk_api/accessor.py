@@ -1,7 +1,7 @@
 import typing
 from typing import Optional
 
-from aiohttp.client import ClientSession
+from aiohttp.client import ClientSession, TCPConnector
 
 from app.base.base_accessor import BaseAccessor
 from app.store.vk_api.dataclasses import Message
@@ -24,11 +24,15 @@ class VkApiAccessor(BaseAccessor):
         # TODO: добавить создание aiohttp ClientSession,
         #  получить данные о long poll сервере с помощью метода groups.getLongPollServer
         #  вызвать метод start у Poller
-        raise NotImplementedError
+        self.session = ClientSession(connector=TCPConnector(ssl=True))
+
+        await self._get_long_poll_service()
+        self.poller = Poller(self.app.store)
 
     async def disconnect(self, app: "Application"):
         # TODO: закрыть сессию и завершить поллер
-        raise NotImplementedError
+        if self.session is not None:
+            await self.session.close()
 
     @staticmethod
     def _build_query(host: str, method: str, params: dict) -> str:
@@ -39,10 +43,27 @@ class VkApiAccessor(BaseAccessor):
         return url
 
     async def _get_long_poll_service(self):
-        raise NotImplementedError
+        url = self._build_query(
+            host='https://api.vk.com/method/',
+            method='groups.getLongPollServer',
+            params={'group_id': '206725431',
+                    'access_token':
+                        '523f9336c303fed692990967079cf930cac6e58e121b60e8e21340841cc619aaa9875a0f24bfd5615a4c4'})
+
+        async with self.session.get(url) as resp:
+            json_data = await resp.json()
+            self.key = json_data['response']['key']
+            self.server = json_data['response']['server']
+            self.ts = json_data['response']['ts']
 
     async def poll(self):
-        raise NotImplementedError
+        url = self._build_query(self.server, '/', {'act': 'a_check', 'key': self.key, 'ts': self.ts})
+
+        async with self.session.get(url) as resp:
+            json_data = await resp.json()
+            if self.ts < json_data['ts']:
+                print('new message')
+                self.ts = json_data['ts']
 
     async def send_message(self, message: Message) -> None:
         raise NotImplementedError
