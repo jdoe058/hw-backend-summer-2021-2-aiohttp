@@ -13,7 +13,7 @@ class Store:
         from app.store.bot.manager import BotManager
         from app.store.vk_api.accessor import VkApiAccessor
 
-        self.vk = VkApiAccessor(app)
+        self.vk_api = VkApiAccessor(app)
         self.bots_manager = BotManager(app)
         self.admins = AdminAccessor(app)
         self.quizzes = QuizAccessor(app)

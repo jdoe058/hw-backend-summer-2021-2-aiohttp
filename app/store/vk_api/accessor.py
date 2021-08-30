@@ -5,7 +5,7 @@ from typing import Optional
 from aiohttp.client import ClientSession, TCPConnector
 
 from app.base.base_accessor import BaseAccessor
-from app.store.vk_api.dataclasses import Message
+from app.store.vk_api.dataclasses import Message, Update, UpdateMessage, UpdateObject
 from app.store.vk_api.poller import Poller
 
 if typing.TYPE_CHECKING:
@@ -65,15 +65,24 @@ class VkApiAccessor(BaseAccessor):
             json_data = await resp.json()
             if self.ts <= json_data['ts']:
                 self.ts = json_data['ts']
-                if len(json_data['updates']):
-                    await self.app.store.bots_manager.handle_updates(json_data['updates'])
+
+                updates = list()
+                for update in json_data['updates']:
+                    print(update)
+                    if update['type'] == 'message_new':
+                        from_id = update['object']['message']['from_id']
+                        updates.append(Update(type=update['type'], object=UpdateObject(message=UpdateMessage(text='', id=0,
+                                                                                                         from_id=from_id))))
+
+                if len(updates):
+                    await self.app.store.bots_manager.handle_updates(updates)
 
     async def send_message(self, message: Message) -> None:
         url = self._build_query(
             host='https://api.vk.com/method/',
             method='messages.send',
-            params={'peer_id': '210930073',
-                    'message': message,
+            params={'peer_id': message.user_id,
+                    'message': message.text,
                     'random_id': randint(0, 32000),
                     'access_token':
                         '523f9336c303fed692990967079cf930cac6e58e121b60e8e21340841cc619aaa9875a0f24bfd5615a4c4'})

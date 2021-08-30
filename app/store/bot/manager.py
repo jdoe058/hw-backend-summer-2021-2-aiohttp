@@ -1,6 +1,6 @@
 import typing
 
-from app.store.vk_api.dataclasses import Update
+from app.store.vk_api.dataclasses import Update, Message
 
 if typing.TYPE_CHECKING:
     from app.web.app import Application
@@ -13,5 +13,6 @@ class BotManager:
     async def handle_updates(self, updates: list[Update]):
         for update in updates:
             if update.type == 'message_new':
-                print(update)
-                await self.app.store.vk.send_message('new message')
+                message = Message(user_id=update.object.message.from_id, text='new message')
+                await self.app.store.vk_api.send_message(message)
+
